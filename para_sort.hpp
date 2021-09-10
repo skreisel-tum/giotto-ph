@@ -24,7 +24,7 @@
 #define PARA_SORT_HPP
 
 #ifdef USE_THREAD_POOL
-#include <common/ctpl_stl.h>
+#include "ctpl_stl.h"
 #endif
 
 #include <algorithm>

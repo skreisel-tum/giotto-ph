@@ -40,10 +40,10 @@
 
 // #define USE_COEFFICIENTS
 
-// #define USE_TRIVIAL_CONCURRENT_HASHMAP
-#define USE_JUNCTION
+//#define USE_TRIVIAL_CONCURRENT_HASHMAP
+//#define USE_JUNCTION
 #define USE_THREAD_POOL
-#define SORT_BARCODES
+//#define SORT_BARCODES
 
 #include <algorithm>
 #include <atomic>
@@ -63,16 +63,16 @@
 #include <thread>
 
 /* Memory Manager */
-#include <common/reclamation.hpp>
+#include "reclamation.hpp"
 
 #ifdef USE_THREAD_POOL
-#include <common/ctpl_stl.h>
+#include "ctpl_stl.h"
 #endif
 
-#include <common/para_sort.hpp>
+#include "para_sort.hpp"
 
 #if defined(USE_JUNCTION)
-#include <common/concurrent_hash_map.hpp>
+#include "concurrent_hash_map.hpp"
 template <class Key, class T, class H, class E>
 class hash_map : public concurrent_hash_map::junction_leapfrog_hm<Key, T, H, E>
 {
@@ -82,6 +82,16 @@ public:
         : concurrent_hash_map::junction_leapfrog_hm<Key, T, H, E>(cap)
     {
     }
+};
+#else
+#include "trivial_concurrent_hash_map.hpp"
+template <class Key, class T, class H, class E>
+class hash_map : public mrzv::trivial_concurrent_hash_map<Key, T, H, E>
+{
+public:
+    hash_map() : mrzv::trivial_concurrent_hash_map<Key, T, H, E>() {}
+    hash_map(size_t cap)
+        : mrzv::trivial_concurrent_hash_map<Key, T, H, E>() {}
 };
 #endif
 
@@ -1316,13 +1326,10 @@ public:
             return index_column_to_reduce;
         })
             ;
-        pivot_column_index.quiescent();
-        deaths.quiescent();
+        //TODO(Seb): Why is this needed? Specific to implementation?
+        //pivot_column_index.quiescent();
+        //deaths.quiescent();
         /* persistence pairs */
-#if defined(SORT_BARCODES)
-        std::vector<std::pair<value_t, value_t>> persistence_pair;
-#endif
-
         pivot_column_index.foreach (
             [&](const typename entry_hash_map::value_type& x) {
                 auto it = deaths.find(x.first);
@@ -1332,31 +1339,13 @@ public:
                 value_t birth =
                     get_diameter(columns_to_reduce[get_index(x.second)]);
                 if (death > birth * ratio) {
-#if defined(SORT_BARCODES)
-                    persistence_pair.push_back({birth, death});
-#else
                     births_and_deaths_by_dim[dim].push_back(birth);
                     births_and_deaths_by_dim[dim].push_back(death);
-#endif
                 }
             });
-#if defined(SORT_BARCODES)
-        if (persistence_pair.size()) {
-            std::sort(persistence_pair.begin(), persistence_pair.end(),
-                      std::greater<>());
-            for (auto& pair : persistence_pair) {
-                births_and_deaths_by_dim[dim].push_back(pair.first);
-                births_and_deaths_by_dim[dim].push_back(pair.second);
-            }
-        }
-#endif
         /* essential pairs */
         if (idx_essential) {
             essential_pair.resize(idx_essential);
-#if defined(SORT_BARCODES)
-            std::sort(essential_pair.begin(), essential_pair.end(),
-                      std::greater<>());
-#endif
             for (size_t i = 0; i < idx_essential; ++i) {
                 if (!std::isinf(essential_pair[i])) {
                     births_and_deaths_by_dim[dim].push_back(essential_pair[i]);
