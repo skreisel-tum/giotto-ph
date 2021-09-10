@@ -144,7 +144,7 @@ public:
 
     index_t operator()(index_t k, index_t n) const
     {
-        assert(n < B.size() && k < B[n].size() && n >= k - 1);
+        //assert(n < (index_t) B.size() && k < (index_t) B[n].size() && n >= k - 1);
         return B[n][k];
     }
 };
@@ -422,8 +422,8 @@ struct euclidean_distance_matrix {
 
     value_t operator()(const index_t i, const index_t j) const
     {
-        assert(i < points.size());
-        assert(j < points.size());
+        assert(i < (index_t) points.size());
+        assert(j < (index_t) points.size());
         return std::sqrt(std::inner_product(
             points[i].begin(), points[i].end(), points[j].begin(), value_t(),
             std::plus<value_t>(),
@@ -601,10 +601,15 @@ public:
 
     ripser(DistanceMatrix&& _dist, index_t _dim_max, value_t _threshold,
            float _ratio, coefficient_t _modulus, int _num_threads)
-        : dist(std::move(_dist)), n(dist.size()), dim_max(_dim_max),
-          threshold(_threshold), ratio(_ratio), modulus(_modulus),
-          num_threads(_num_threads), binomial_coeff(n, dim_max + 2),
-          multiplicative_inverse(multiplicative_inverse_vector(_modulus))
+        : dist(std::move(_dist)),
+          n(dist.size()),
+          dim_max(_dim_max),
+          threshold(_threshold),
+          ratio(_ratio),
+          modulus(_modulus),
+          binomial_coeff(n, dim_max + 2),
+          multiplicative_inverse(multiplicative_inverse_vector(_modulus)),
+          num_threads(_num_threads)
     {
         /* Uses all concurrent threads supported */
         if (num_threads == -1)
@@ -803,7 +808,7 @@ public:
         chunk_size = (chunk_size) ? chunk_size : 1;
         std::atomic<size_t> achunk(0);
 
-        const size_t n_thr = (chunk_size < num_threads) ? 1 : num_threads;
+        const size_t n_thr = ((index_t) chunk_size < num_threads) ? 1 : num_threads;
         mat_simplicies_t next_simplices_vec(n_thr);
         mat_simplicies_t columns_to_reduce_vec(n_thr);
 #if defined(USE_THREAD_POOL)
@@ -1097,7 +1102,7 @@ public:
         chunk_size = (chunk_size) ? chunk_size : 1;
         mrzv::MemoryManager<MatrixColumn> memory_manager(num_threads);
 
-        const size_t n_thr = (chunk_size < num_threads) ? 1 : num_threads;
+        const size_t n_thr = ((index_t) chunk_size < num_threads) ? 1 : num_threads;
 
 #if defined(USE_THREAD_POOL)
         std::vector<std::future<void>> futures;

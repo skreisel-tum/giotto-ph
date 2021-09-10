@@ -94,6 +94,7 @@ compressed_lower_distance_matrix read_lower_distance_matrix(std::istream& input_
 		input_stream.ignore();
 	}
 
+	//return compressed_lower_distance_matrix(compressed_upper_distance_matrix(std::move(distances)));
 	return compressed_lower_distance_matrix(std::move(distances));
 }
 
@@ -321,12 +322,28 @@ int main(int argc, char** argv) {
 			if (d <= threshold) ++num_edges;
 		}
 		std::cout << "value range: [" << min << "," << max_finite << "]" << std::endl;
-
-		if (threshold >= max) {
+		// TODO(Seb): We force a compressed_lower_distance_mat
+		if (true || threshold >= max) {
 			std::cout << "distance matrix with " << dist.size() << " points" << std::endl;
-			ripser<compressed_lower_distance_matrix>(std::move(dist), dim_max, threshold, ratio,
-			                                         modulus, num_threads)
-			    .compute_barcodes();
+			ripserResults res;
+			ripser<compressed_lower_distance_matrix> r(
+				std::move(dist),
+				dim_max,
+				threshold,
+				ratio,
+				modulus,
+				num_threads
+			);
+			r.compute_barcodes();
+			r.copy_results(res);
+			for(index_t d = 0; d < res.births_and_deaths_by_dim.size(); d++) {
+				for(index_t i = 0; i < res.births_and_deaths_by_dim.at(d).size(); i+=2) {
+					std::cout << "d=" << d <<" ["
+					          << res.births_and_deaths_by_dim.at(d).at(i) << ","
+					          << res.births_and_deaths_by_dim.at(d).at(i+1) << "]"
+					          << std::endl;
+				}
+			}
 		} else {
 			std::cout << "sparse distance matrix with " << dist.size() << " points and "
 			          << num_edges << "/" << (dist.size() * dist.size() - 1) / 2 << " entries"
@@ -335,6 +352,7 @@ int main(int argc, char** argv) {
 			ripser<sparse_distance_matrix>(sparse_distance_matrix(std::move(dist), threshold),
 			                               dim_max, threshold, ratio, modulus, num_threads)
 			    .compute_barcodes();
+
 		}
 		exit(0);
 	}

@@ -9,9 +9,9 @@ namespace mrzv
 {
 template <class T>
 struct MemoryManager {
-    std::vector<T*> retiring_;
     std::atomic<int> counter_;
     size_t n_threads_;
+    std::vector<T*> retiring_;
     bool even_epoch_ = false;
     std::mutex mut;
 
