@@ -1,7 +1,16 @@
-all: ripser_giotto_redux
+all: ripser_gredux_trivial ripser_gredux_tbb
 
-ripser_giotto_redux: main.cpp
-	c++ -std=c++14 -Wall -pthread main.cpp -o ripser_giotto_redux -g
+FLAGS=-pthread -MMD -MP
+
+-include *.d
+
+ripser_gredux_trivial: main.cpp
+	c++ -std=c++14 -Wall main.cpp -o $@ -Ofast ${FLAGS} -DUSE_TRIVIAL_CONCURRENT_HASHMAP
+
+ripser_gredux_tbb: main.cpp
+	c++ -std=c++14 -Wall main.cpp -o $@ -Ofast ${FLAGS} -DUSE_TBB_HASHMAP -ltbb
+
 
 clean:
-	rm -f ripser_giotto_redux
+	rm -f ripser_gredux_trivial ripser_gredux_tbb
+

@@ -38,12 +38,15 @@
 
 */
 
-// #define USE_COEFFICIENTS
+//#define USE_COEFFICIENTS
+//#define SORT_BARCODES
 
+
+#define USE_THREAD_POOL
+//#define USE_TBB_HASHMAP
 //#define USE_TRIVIAL_CONCURRENT_HASHMAP
 //#define USE_JUNCTION
-#define USE_THREAD_POOL
-//#define SORT_BARCODES
+
 
 #include <algorithm>
 #include <atomic>
@@ -83,7 +86,9 @@ public:
     {
     }
 };
-#else
+#endif
+
+#if defined(USE_TRIVIAL_CONCURRENT_HASHMAP)
 #include "trivial_concurrent_hash_map.hpp"
 template <class Key, class T, class H, class E>
 class hash_map : public mrzv::trivial_concurrent_hash_map<Key, T, H, E>
@@ -92,6 +97,34 @@ public:
     hash_map() : mrzv::trivial_concurrent_hash_map<Key, T, H, E>() {}
     hash_map(size_t cap)
         : mrzv::trivial_concurrent_hash_map<Key, T, H, E>() {}
+};
+#endif
+
+#if defined(USE_TBB_HASHMAP)
+//#include <tbb/tbb.h>
+//#include <tbb/parallel_sort.h>
+#include <tbb/concurrent_unordered_map.h>
+template <class Key, class T, class H, class E>
+class hash_map : public tbb::concurrent_unordered_map<Key, T, H, E>
+{
+public:
+    using Parent = tbb::concurrent_unordered_map<Key, T, H, E>;
+    using iterator = typename Parent::iterator;
+
+    hash_map() : tbb::concurrent_unordered_map<Key, T, H, E>() { }
+
+    hash_map(size_t cap)
+        : tbb::concurrent_unordered_map<Key, T, H, E>() { }
+
+    Key key(iterator it) const { return it->first; }
+    T   value(iterator it) const { return it->second; }
+
+    bool update(iterator it, T& expected, T desired) { it->second = desired; return true; }
+
+    template<class F>
+    void foreach(const F& f) const  { for(auto& x : (*this)) f(x); }
+
+    void reserve(size_t hint) {}
 };
 #endif
 
